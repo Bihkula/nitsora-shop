@@ -1,4 +1,5 @@
 import logging
+
 from sqlalchemy import select
 
 from shopcommon.app import create_app
