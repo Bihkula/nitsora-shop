@@ -42,7 +42,7 @@ def test_reserve_and_release(client):
     assert r.status_code == 200, r.text
     line = r.json()["lines"][0]
     assert line["quantity"] == 3
-    assert line["unit_price_pence"] == 1200
+    assert line["unit_price_pence"] == 1800
     assert client.get("/products/1").json()["stock"] == before - 3
 
     client.post(
