@@ -1,3 +1,9 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
 __pycache__/
 *.py[cod]
 .pytest_cache/
