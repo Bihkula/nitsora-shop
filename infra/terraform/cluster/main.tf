@@ -63,3 +63,61 @@ output "vpc_id" {
 output "private_subnets" {
   value = module.vpc.private_subnets
 }
+# ---------------------------------------------------------------- EKS
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 21.0"
+
+  name               = var.cluster_name
+  kubernetes_version = var.kubernetes_version
+
+  # Reach the API from your laptop; whoever runs apply becomes cluster admin
+  endpoint_public_access                   = true
+  enable_cluster_creator_admin_permissions = true
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  addons = {
+    vpc-cni = {
+      before_compute = true
+    }
+    eks-pod-identity-agent = {
+      before_compute = true
+    }
+    coredns        = {}
+    kube-proxy     = {}
+    metrics-server = {}
+    aws-ebs-csi-driver = {
+      pod_identity_association = [{
+        role_arn        = module.ebs_csi_identity.iam_role_arn
+        service_account = "ebs-csi-controller-sa"
+      }]
+    }
+  }
+
+  eks_managed_node_groups = {
+    general = {
+      instance_types = [var.node_instance_type]
+      min_size       = 1
+      max_size       = 4
+      desired_size   = var.node_count
+    }
+  }
+}
+
+# AWS permissions for the EBS disk driver (via Pod Identity)
+module "ebs_csi_identity" {
+  source  = "terraform-aws-modules/eks-pod-identity/aws"
+  version = "~> 2.0"
+
+  name                      = "${var.cluster_name}-ebs-csi"
+  attach_aws_ebs_csi_policy = true
+}
+output "cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "configure_kubectl" {
+  value = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.aws_region}"
+}
